@@ -1,0 +1,251 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono);
+
+  /* ── shadcn core mappings ── */
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--text);
+  --color-primary: var(--secondary);
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: var(--surface-2);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--text-2);
+  --color-accent: var(--surface-2);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--danger);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--secondary);
+
+  /* ── KFM custom semantic colors ── */
+  --color-kfm-bg: var(--bg);
+  --color-kfm-surface: var(--surface);
+  --color-kfm-surface-2: var(--surface-2);
+  --color-kfm-border: var(--border);
+  --color-kfm-text: var(--text);
+  --color-kfm-text-2: var(--text-2);
+  --color-kfm-text-3: var(--text-3);
+  --color-kfm-primary: var(--primary);
+  --color-kfm-primary-hover: var(--primary-hover);
+  --color-kfm-secondary: var(--secondary);
+  --color-kfm-secondary-hover: var(--secondary-hover);
+  --color-kfm-success: var(--success);
+  --color-kfm-warning: var(--warning);
+  --color-kfm-danger: var(--danger);
+  --color-kfm-info: var(--info);
+  --color-kfm-accent: var(--accent);
+
+  /* ── Charts ── */
+  --color-chart-1: var(--secondary);
+  --color-chart-2: var(--success);
+  --color-chart-3: var(--warning);
+  --color-chart-4: var(--accent);
+  --color-chart-5: var(--info);
+
+  /* ── Sidebar ── */
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+
+  /* ── Radius ── */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+}
+
+/* ════════════════════════════════════════════
+   KFM RESTAURANT OS — LIGHT THEME
+   ════════════════════════════════════════════ */
+:root {
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --surface-2: #F1F5F9;
+  --border: #E2E8F0;
+  --text: #0F172A;
+  --text-2: #475569;
+  --text-3: #94A3B8;
+  --primary: #0F172A;
+  --primary-hover: #1E293B;
+  --secondary: #2563EB;
+  --secondary-hover: #1D4ED8;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --info: #06B6D4;
+  --accent: #F97316;
+  --radius: 12px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 18px 50px rgba(15, 23, 42, 0.12);
+
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0F172A;
+  --sidebar-primary: #2563EB;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F1F5F9;
+  --sidebar-accent-foreground: #0F172A;
+  --sidebar-border: #E2E8F0;
+  --sidebar-ring: #2563EB;
+}
+
+/* ════════════════════════════════════════════
+   KFM RESTAURANT OS — DARK THEME
+   ════════════════════════════════════════════ */
+.dark {
+  --bg: #020617;
+  --surface: #0F172A;
+  --surface-2: #1E293B;
+  --border: #334155;
+  --text: #F8FAFC;
+  --text-2: #CBD5E1;
+  --text-3: #94A3B8;
+  --primary: #E2E8F0;
+  --primary-hover: #CBD5E1;
+  --secondary: #3B82F6;
+  --secondary-hover: #2563EB;
+  --success: #22C55E;
+  --warning: #FBBF24;
+  --danger: #F87171;
+  --info: #22D3EE;
+  --accent: #FB923C;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.4);
+
+  --sidebar: #0F172A;
+  --sidebar-foreground: #F8FAFC;
+  --sidebar-primary: #3B82F6;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1E293B;
+  --sidebar-accent-foreground: #F8FAFC;
+  --sidebar-border: #334155;
+  --sidebar-ring: #3B82F6;
+}
+
+/* ════════════════════════════════════════════
+   BASE STYLES
+   ════════════════════════════════════════════ */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* ════════════════════════════════════════════
+   KFM UTILITY CLASSES
+   ════════════════════════════════════════════ */
+@layer utilities {
+  .bg-bg { background-color: var(--bg); }
+  .bg-surface { background-color: var(--surface); }
+  .bg-surface-2 { background-color: var(--surface-2); }
+  .text-text { color: var(--text); }
+  .text-text-2 { color: var(--text-2); }
+  .text-text-3 { color: var(--text-3); }
+  .text-primary { color: var(--primary); }
+  .text-kfm-secondary { color: var(--secondary); }
+  .text-kfm-success { color: var(--success); }
+  .text-kfm-warning { color: var(--warning); }
+  .text-kfm-danger { color: var(--danger); }
+  .text-kfm-info { color: var(--info); }
+  .text-kfm-accent { color: var(--accent); }
+  .bg-kfm-primary { background-color: var(--primary); }
+  .bg-kfm-secondary { background-color: var(--secondary); }
+  .bg-kfm-success { background-color: var(--success); }
+  .bg-kfm-warning { background-color: var(--warning); }
+  .bg-kfm-danger { background-color: var(--danger); }
+  .bg-kfm-info { background-color: var(--info); }
+  .bg-kfm-accent { background-color: var(--accent); }
+  .border-kfm-border { border-color: var(--border); }
+  .shadow-kfm-sm { box-shadow: var(--shadow-sm); }
+  .shadow-kfm-md { box-shadow: var(--shadow-md); }
+  .shadow-kfm-lg { box-shadow: var(--shadow-lg); }
+  .rounded-kfm-sm { border-radius: var(--radius-sm); }
+  .rounded-kfm-md { border-radius: var(--radius-md); }
+  .rounded-kfm-lg { border-radius: var(--radius-lg); }
+}
+
+/* ════════════════════════════════════════════
+   CUSTOM SCROLLBAR
+   ════════════════════════════════════════════ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--text-3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-2);
+}
+
+/* ════════════════════════════════════════════
+   KPI ANIMATION
+   ════════════════════════════════════════════ */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s ease-out forwards;
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-count-up {
+  animation: count-up 0.5s ease-out forwards;
+}
+
+/* ════════════════════════════════════════════
+   KFM SKELETON LOADING
+   ════════════════════════════════════════════ */
+.kfm-skeleton {
+  background: var(--surface-2);
+  border-radius: var(--radius-sm, 8px);
+  animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ════════════════════════════════════════════
+   SCROLLBAR NONE UTILITY
+   ════════════════════════════════════════════ */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

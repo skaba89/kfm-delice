@@ -1,0 +1,62 @@
+# ============================================
+# KFM Delice - Docker Compose Development
+# Hot reload + PostgreSQL
+# ============================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: kfm_delice_db_dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kfm_admin
+      POSTGRES_PASSWORD: kfm_secure_password_2024
+      POSTGRES_DB: kfm_delice
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kfm_admin -d kfm_delice"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kfm_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: kfm_delice_app_dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://kfm_admin:kfm_secure_password_2024@db:5432/kfm_delice?schema=public"
+      JWT_SECRET: "kfm-delice-dev-jwt-secret-2024"
+      CINETPAY_SITE_ID: "${CINETPAY_SITE_ID}"
+      CINETPAY_API_KEY: "${CINETPAY_API_KEY}"
+      CINETPAY_SECRET_KEY: "${CINETPAY_SECRET_KEY}"
+      CINETPAY_MODE: "sandbox"
+      CINETPAY_NOTIFY_URL: "http://localhost:3000/api/payments/webhook"
+      CINETPAY_RETURN_URL: "http://localhost:3000/customer/orders"
+      CINETPAY_CANCEL_URL: "http://localhost:3000/customer/menu"
+      NODE_ENV: "development"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npx prisma migrate deploy && npx prisma db seed && npm run dev"
+    networks:
+      - kfm_network
+
+volumes:
+  postgres_data_dev:
+
+networks:
+  kfm_network:
+    driver: bridge
