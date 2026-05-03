@@ -1,8 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages } from "next-intl/server";
+import { cookies } from "next/headers";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { WhatsAppButton } from "@/components/whatsapp-button";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import { getRestaurantJsonLd, getOrganizationJsonLd } from "@/lib/seo";
 
 const inter = Inter({
@@ -93,35 +97,48 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const locale = cookieStore.get("kfm-locale")?.value || "fr";
+  const messages = await getMessages({ locale });
+
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <meta name="geo.region" content="GN-C" />
         <meta name="geo.placename" content="Conakry, Guinee" />
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
-        {/* JSON-LD Structured Data for SEO */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(getRestaurantJsonLd()),
-          }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(getOrganizationJsonLd()),
-          }}
-        />
-        {children}
-        <Toaster />
-        <WhatsAppButton />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            {/* JSON-LD Structured Data for SEO */}
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify(getRestaurantJsonLd()),
+              }}
+            />
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify(getOrganizationJsonLd()),
+              }}
+            />
+            {children}
+            <Toaster />
+            <WhatsAppButton />
+          </NextIntlClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

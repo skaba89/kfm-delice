@@ -1,12 +1,24 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { success, error } from "@/lib/api-response";
+import { checkAnyPermission } from "@/lib/rbac";
+import { Permissions } from "@/lib/permissions";
+import { withRLS, buildRLSUser } from "@/lib/prisma-extensions";
 
 // ============================================
-// GET /api/menu-items — List menu items
+// GET /api/menu-items — List menu items (RBAC + RLS)
 // ============================================
 export async function GET(req: NextRequest) {
   try {
+    // All authenticated roles can read menu items
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.MENU_READ,
+      Permissions.MENU_MANAGE,
+    ]);
+    // Allow unauthenticated access for public menu browsing
+    const isAuthenticated = !(userOrError instanceof globalThis.Response);
+    const user = isAuthenticated ? userOrError : null;
+
     const { searchParams } = new URL(req.url);
     const categoryId = searchParams.get("categoryId");
     const search = searchParams.get("search");
@@ -23,7 +35,14 @@ export async function GET(req: NextRequest) {
     }
     if (available === "true") where.isAvailable = true;
 
-    const items = await db.menuItem.findMany({
+    // Apply RLS for authenticated non-customer users
+    let queryDb = db;
+    if (user) {
+      const rlsUser = await buildRLSUser(user.id, user.role);
+      queryDb = withRLS(db, rlsUser);
+    }
+
+    const items = await queryDb.menuItem.findMany({
       where,
       include: {
         category: {
@@ -41,10 +60,17 @@ export async function GET(req: NextRequest) {
 }
 
 // ============================================
-// POST /api/menu-items — Create menu item
+// POST /api/menu-items — Create menu item (RBAC)
 // ============================================
 export async function POST(req: NextRequest) {
   try {
+    // Only roles that can create menu items
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.MENU_CREATE,
+      Permissions.MENU_MANAGE,
+    ]);
+    if (userOrError instanceof globalThis.Response) return userOrError;
+
     const body = await req.json();
     const {
       categoryId,
@@ -117,11 +143,16 @@ export async function POST(req: NextRequest) {
 }
 
 // ============================================
-// PUT /api/menu-items — Update an existing menu item
-// Body must include `id` plus any fields to update.
+// PUT /api/menu-items — Update an existing menu item (RBAC)
 // ============================================
 export async function PUT(req: NextRequest) {
   try {
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.MENU_UPDATE,
+      Permissions.MENU_MANAGE,
+    ]);
+    if (userOrError instanceof globalThis.Response) return userOrError;
+
     const body = await req.json();
     const { id, ...fields } = body;
 
@@ -187,10 +218,16 @@ export async function PUT(req: NextRequest) {
 }
 
 // ============================================
-// DELETE /api/menu-items?id=xxx — Delete a menu item
+// DELETE /api/menu-items?id=xxx — Delete a menu item (RBAC)
 // ============================================
 export async function DELETE(req: NextRequest) {
   try {
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.MENU_DELETE,
+      Permissions.MENU_MANAGE,
+    ]);
+    if (userOrError instanceof globalThis.Response) return userOrError;
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 

@@ -5,12 +5,23 @@ import { generateOrderNumber } from "@/lib/auth";
 import { createNotification } from "@/lib/notifications";
 import { formatCurrency } from "@/lib/utils";
 import { emitToRoom } from "@/lib/socket-server";
+import { checkAnyPermission } from "@/lib/rbac";
+import { Permissions } from "@/lib/permissions";
+import { withRLS, buildRLSUser } from "@/lib/prisma-extensions";
 
 // ============================================
-// GET /api/orders — List orders with filters
+// GET /api/orders — List orders with filters (RBAC + RLS)
 // ============================================
 export async function GET(req: NextRequest) {
   try {
+    // RBAC check — any role that can read orders
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.ORDERS_READ,
+      Permissions.ORDERS_MANAGE,
+      Permissions.KITCHEN_ACCESS,
+    ]);
+    if (userOrError instanceof globalThis.Response) return userOrError;
+
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
     const type = searchParams.get("type");
@@ -31,8 +42,12 @@ export async function GET(req: NextRequest) {
       ];
     }
 
+    // Apply RLS — scope orders to user's restaurant / own data
+    const rlsUser = await buildRLSUser(userOrError.id, userOrError.role);
+    const secureDb = withRLS(db, rlsUser);
+
     const [orders, total] = await Promise.all([
-      db.order.findMany({
+      secureDb.order.findMany({
         where,
         skip,
         take: limit,
@@ -49,7 +64,7 @@ export async function GET(req: NextRequest) {
           },
         },
       }),
-      db.order.count({ where }),
+      secureDb.order.count({ where }),
     ]);
 
     return success({ orders, total, page, limit });
@@ -60,10 +75,18 @@ export async function GET(req: NextRequest) {
 }
 
 // ============================================
-// POST /api/orders — Create new order
+// POST /api/orders — Create new order (RBAC)
 // ============================================
 export async function POST(req: NextRequest) {
   try {
+    // RBAC check — roles that can create orders
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.ORDERS_CREATE,
+      Permissions.ORDERS_MANAGE,
+      Permissions.POS_ACCESS,
+    ]);
+    if (userOrError instanceof globalThis.Response) return userOrError;
+
     const body = await req.json();
     const {
       customerName,
@@ -88,10 +111,15 @@ export async function POST(req: NextRequest) {
       return error("At least one item is required");
     }
 
-    // Get restaurant (use first active restaurant)
-    const restaurant = await db.restaurant.findFirst({
-      where: { isActive: true },
-    });
+    // Get restaurant (use first active restaurant, or user's assigned restaurant)
+    const rlsUser = await buildRLSUser(userOrError.id, userOrError.role);
+    const restaurant = rlsUser.restaurantId
+      ? await db.restaurant.findFirst({
+          where: { id: rlsUser.restaurantId, isActive: true },
+        })
+      : await db.restaurant.findFirst({
+          where: { isActive: true },
+        });
 
     if (!restaurant) {
       return error("No active restaurant found");

@@ -2,12 +2,23 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { success, error } from "@/lib/api-response";
 import bcrypt from "bcryptjs";
+import { checkAnyPermission } from "@/lib/rbac";
+import { Permissions } from "@/lib/permissions";
 
 // ============================================
-// GET /api/users — List users with pagination, search, role filter
+// GET /api/users — List users with pagination, search, role filter (RBAC)
 // ============================================
 export async function GET(req: NextRequest) {
   try {
+    // Only roles that can read/manage users
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.USERS_READ,
+      Permissions.USERS_MANAGE,
+      Permissions.HR_READ,
+      Permissions.HR_MANAGE,
+    ]);
+    if (userOrError instanceof globalThis.Response) return userOrError;
+
     const { searchParams } = new URL(req.url);
     const search = searchParams.get("search") || "";
     const role = searchParams.get("role");
@@ -70,10 +81,18 @@ export async function GET(req: NextRequest) {
 }
 
 // ============================================
-// POST /api/users — Create user (admin)
+// POST /api/users — Create user (admin only, RBAC)
 // ============================================
 export async function POST(req: NextRequest) {
   try {
+    // Only roles that can create users
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.USERS_CREATE,
+      Permissions.USERS_MANAGE,
+      Permissions.HR_MANAGE,
+    ]);
+    if (userOrError instanceof globalThis.Response) return userOrError;
+
     const body = await req.json();
     const { email, password, firstName, lastName, phone, role } = body;
 

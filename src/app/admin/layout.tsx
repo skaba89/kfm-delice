@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, ShoppingCart, Monitor, Truck, UtensilsCrossed, Package, Users,
-  CreditCard, UserCog, BarChart3, Settings, ChefHat, X, LogOut, Moon, Sun,
+  CreditCard, UserCog, BarChart3, Settings, ChefHat, X, LogOut,
   MapPin, CalendarCheck, Receipt, FileText, TrendingUp, Building2,
   Briefcase, Gift, Apple, Crown, ClipboardList, Shield
 } from "lucide-react";
@@ -14,6 +14,8 @@ import { NotificationBell } from "@/components/kfm-ui/notification-bell";
 import { SocketProvider } from "@/components/providers/socket-provider";
 import { AdminSocketListener } from "@/components/admin/socket-listener";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 const adminNavSections = [
   {
@@ -92,20 +94,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
     logout();
-  };
-
-  const toggleDark = () => {
-    setDarkMode((prev) => {
-      const next = !prev;
-      if (next) document.documentElement.classList.add("dark");
-      else document.documentElement.classList.remove("dark");
-      return next;
-    });
   };
 
   return (
@@ -174,10 +166,10 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             <ChefHat className="h-4 w-4 text-text-3" />
             Portail Cuisine
           </Link>
-          <button onClick={toggleDark} className="flex w-full items-center gap-3 rounded-kfm-sm px-3 py-2 text-sm font-medium text-text-2 hover:bg-surface-2">
-            {darkMode ? <Sun className="h-4 w-4 text-text-3" /> : <Moon className="h-4 w-4 text-text-3" />}
-            {darkMode ? "Mode clair" : "Mode sombre"}
-          </button>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <ThemeToggle />
+            <LanguageSwitcher />
+          </div>
           <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-kfm-sm px-3 py-2 text-sm font-medium text-kfm-danger hover:bg-kfm-danger/10">
             <LogOut className="h-4 w-4" />
             Deconnexion

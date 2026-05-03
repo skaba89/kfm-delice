@@ -1,15 +1,25 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { success, error } from "@/lib/api-response";
+import { checkAnyPermission } from "@/lib/rbac";
+import { Permissions } from "@/lib/permissions";
 
 // ============================================
-// PUT /api/users/[id] — Update user
+// PUT /api/users/[id] — Update user (RBAC)
 // ============================================
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Only roles that can update users
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.USERS_UPDATE,
+      Permissions.USERS_MANAGE,
+      Permissions.HR_MANAGE,
+    ]);
+    if (userOrError instanceof globalThis.Response) return userOrError;
+
     const { id } = await params;
     const body = await req.json();
     const { firstName, lastName, phone, role, isActive, isLocked } = body;
@@ -48,13 +58,20 @@ export async function PUT(
 }
 
 // ============================================
-// DELETE /api/users/[id] — Soft-delete user
+// DELETE /api/users/[id] — Soft-delete user (RBAC)
 // ============================================
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Only roles that can delete users
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.USERS_DELETE,
+      Permissions.USERS_MANAGE,
+    ]);
+    if (userOrError instanceof globalThis.Response) return userOrError;
+
     const { id } = await params;
 
     await db.user.update({

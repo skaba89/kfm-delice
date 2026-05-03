@@ -15,6 +15,8 @@ import {
 import { cn } from "@/lib/utils";
 import { getCartCount } from "@/lib/cart";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 const customerNavItems = [
   { id: "menu", label: "Menu", icon: UtensilsCrossed, href: "/customer/menu" },
@@ -81,7 +83,13 @@ function CustomerLayoutInner({ children }: { children: React.ReactNode }) {
           {pageTitle}
         </h1>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          {/* Theme toggle */}
+          <ThemeToggle />
+
+          {/* Language switcher */}
+          <LanguageSwitcher />
+
           {/* Cart button */}
           <Link
             href="/customer/cart"

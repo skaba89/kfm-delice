@@ -1,12 +1,23 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { success, error } from "@/lib/api-response";
+import { checkAnyPermission } from "@/lib/rbac";
+import { Permissions } from "@/lib/permissions";
+import { withRLS, buildRLSUser } from "@/lib/prisma-extensions";
 
 // ============================================
-// GET /api/expenses — List expenses
+// GET /api/expenses — List expenses (RBAC + RLS)
 // ============================================
 export async function GET(req: NextRequest) {
   try {
+    // Only roles that can read expenses
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.EXPENSES_READ,
+      Permissions.EXPENSES_MANAGE,
+      Permissions.REPORTS_VIEW,
+    ]);
+    if (userOrError instanceof globalThis.Response) return userOrError;
+
     const { searchParams } = new URL(req.url);
     const categoryId = searchParams.get("categoryId");
     const from = searchParams.get("from");
@@ -21,7 +32,11 @@ export async function GET(req: NextRequest) {
       if (to) (where.date as Record<string, unknown>).lte = new Date(to);
     }
 
-    const expenses = await db.expense.findMany({
+    // Apply RLS — scope to user's restaurant
+    const rlsUser = await buildRLSUser(userOrError.id, userOrError.role);
+    const secureDb = withRLS(db, rlsUser);
+
+    const expenses = await secureDb.expense.findMany({
       where,
       include: {
         categoryRelation: {
@@ -39,10 +54,17 @@ export async function GET(req: NextRequest) {
 }
 
 // ============================================
-// POST /api/expenses — Create expense
+// POST /api/expenses — Create expense (RBAC)
 // ============================================
 export async function POST(req: NextRequest) {
   try {
+    // Only roles that can create expenses
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.EXPENSES_CREATE,
+      Permissions.EXPENSES_MANAGE,
+    ]);
+    if (userOrError instanceof globalThis.Response) return userOrError;
+
     const body = await req.json();
     const { categoryId, amount, title, description, date, paymentMethod, supplierName, notes } = body;
 
@@ -50,11 +72,17 @@ export async function POST(req: NextRequest) {
       return error("amount and date are required");
     }
 
-    // Use provided restaurantId or default to first active restaurant
-    const restaurant = await db.restaurant.findFirst({
-      where: { isActive: true },
-      select: { id: true },
-    });
+    // Resolve user's restaurant
+    const rlsUser = await buildRLSUser(userOrError.id, userOrError.role);
+    const restaurant = rlsUser.restaurantId
+      ? await db.restaurant.findFirst({
+          where: { id: rlsUser.restaurantId, isActive: true },
+          select: { id: true },
+        })
+      : await db.restaurant.findFirst({
+          where: { isActive: true },
+          select: { id: true },
+        });
 
     if (!restaurant) {
       return error("No active restaurant found");
@@ -75,7 +103,7 @@ export async function POST(req: NextRequest) {
         restaurantId: restaurant.id,
         categoryId: categoryId || null,
         title: title || null,
-        category: categoryType as any,
+        category: categoryType as "other",
         description: description || "",
         amount: parseFloat(amount),
         date: new Date(date),
@@ -83,6 +111,7 @@ export async function POST(req: NextRequest) {
         supplierName: supplierName || null,
         notes: notes || null,
         status: "pending",
+        createdById: userOrError.id,
       },
     });
 

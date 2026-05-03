@@ -5,6 +5,7 @@ import { verifyToken, extractToken } from "@/lib/auth-edge";
  * Next.js Middleware — Route Protection (Edge Runtime compatible)
  *
  * Protected routes (require authentication):
+ *   /saas/*      → SUPER_ADMIN only (SaaS platform admin)
  *   /admin/*     → SUPER_ADMIN, ADMIN, MANAGER, STAFF (vendeurs)
  *   /driver/*    → DRIVER
  *   /kitchen/*   → KITCHEN
@@ -19,10 +20,9 @@ import { verifyToken, extractToken } from "@/lib/auth-edge";
  *   Orders from POS: /admin/pos (protected)
  */
 
-const PROTECTED_PATHS = ["/admin", "/driver", "/kitchen"];
+const PROTECTED_PATHS = ["/saas", "/admin", "/driver", "/kitchen"];
 
 // Public API paths — used for reference; API auth is handled per-route
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _PUBLIC_API_PATHS = [
   "/api/customer/menu",
   "/api/auth",
@@ -106,6 +106,10 @@ export async function middleware(req: NextRequest) {
   }
 
   // Role-based access control
+  // SaaS portal: SUPER_ADMIN only
+  if (pathname.startsWith("/saas") && payload.role !== "SUPER_ADMIN") {
+    return withSecurityHeaders(NextResponse.redirect(new URL("/customer/menu", req.url)));
+  }
   // Admin portal: SUPER_ADMIN, ADMIN, MANAGER (vendeurs), STAFF (caissiers)
   if (pathname.startsWith("/admin") && !ADMIN_ROLES.includes(payload.role)) {
     return withSecurityHeaders(NextResponse.redirect(new URL("/customer/menu", req.url)));

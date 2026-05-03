@@ -1,23 +1,22 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { success, error } from "@/lib/api-response";
-import { verifyToken } from "@/lib/auth";
+import { checkAnyPermission } from "@/lib/rbac";
+import { Permissions } from "@/lib/permissions";
+import { withRLS, buildRLSUser } from "@/lib/prisma-extensions";
 
 // ============================================
-// GET /api/payments — List payments (admin/protected)
+// GET /api/payments — List payments (RBAC + RLS)
 // ============================================
 export async function GET(req: NextRequest) {
   try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return error("Authentification requise", 401);
-    }
-
-    const token = authHeader.slice(7);
-    const payload = await verifyToken(token);
-    if (!payload) {
-      return error("Token invalide ou expire", 401);
-    }
+    // Roles that can read payments/invoices
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.INVOICES_READ,
+      Permissions.INVOICES_MANAGE,
+      Permissions.REPORTS_VIEW,
+    ]);
+    if (userOrError instanceof globalThis.Response) return userOrError;
 
     const { searchParams } = new URL(req.url);
     const orderId = searchParams.get("orderId");
@@ -29,8 +28,12 @@ export async function GET(req: NextRequest) {
     if (orderId) where.orderId = orderId;
     if (status) where.status = status;
 
+    // Apply RLS — scope to user's restaurant
+    const rlsUser = await buildRLSUser(userOrError.id, userOrError.role);
+    const secureDb = withRLS(db, rlsUser);
+
     const [payments, total] = await Promise.all([
-      db.payment.findMany({
+      secureDb.payment.findMany({
         where,
         include: {
           order: {
@@ -46,7 +49,7 @@ export async function GET(req: NextRequest) {
         skip: (page - 1) * limit,
         take: limit,
       }),
-      db.payment.count({ where }),
+      secureDb.payment.count({ where }),
     ]);
 
     return success({
@@ -60,11 +63,18 @@ export async function GET(req: NextRequest) {
 }
 
 // ============================================
-// POST /api/payments — Create payment (legacy, redirects to intent)
+// POST /api/payments — Create payment (RBAC)
 // ============================================
 export async function POST(req: NextRequest) {
   try {
-    // Redirect to the new intent flow
+    // Roles that can create payments
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.INVOICES_CREATE,
+      Permissions.INVOICES_MANAGE,
+      Permissions.POS_ACCESS,
+    ]);
+    if (userOrError instanceof globalThis.Response) return userOrError;
+
     const body = await req.json();
     const { orderId, method, amount, provider, phoneNumber } = body;
 

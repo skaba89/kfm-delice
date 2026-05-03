@@ -10,8 +10,6 @@ import {
   UtensilsCrossed,
   User,
   X,
-  Moon,
-  Sun,
   LogOut,
   LayoutDashboard,
   Shield,
@@ -22,6 +20,8 @@ import { authHeaders } from "@/lib/constants";
 import { NotificationBell } from "@/components/kfm-ui/notification-bell";
 import { SocketProvider } from "@/components/providers/socket-provider";
 import { KitchenSocketListener } from "@/components/kitchen/socket-listener";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 const kitchenNavItems = [
   { id: "orders", label: "Commandes", icon: ChefHat, href: "/kitchen/orders" },
@@ -33,7 +33,6 @@ const kitchenNavItems = [
 export default function KitchenLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [cookName, setCookName] = useState("Cuisinier");
   const [orderBadge, setOrderBadge] = useState(0);
 
@@ -75,15 +74,6 @@ export default function KitchenLayout({ children }: { children: React.ReactNode 
     const interval = setInterval(fetchOrderCount, 30000);
     return () => clearInterval(interval);
   }, []);
-
-  const toggleDark = () => {
-    setDarkMode((prev) => {
-      const next = !prev;
-      if (next) document.documentElement.classList.add("dark");
-      else document.documentElement.classList.remove("dark");
-      return next;
-    });
-  };
 
   const currentNav = kitchenNavItems.find((i) => pathname === i.href);
 
@@ -189,17 +179,10 @@ export default function KitchenLayout({ children }: { children: React.ReactNode 
             Restaurant
           </Link>
           <hr className="border-kfm-border my-1" />
-          <button
-            onClick={toggleDark}
-            className="flex w-full items-center gap-3 rounded-kfm-sm px-3 py-2 text-sm font-medium text-text-2 hover:bg-surface-2"
-          >
-            {darkMode ? (
-              <Sun className="h-4 w-4 text-text-3" />
-            ) : (
-              <Moon className="h-4 w-4 text-text-3" />
-            )}
-            {darkMode ? "Mode clair" : "Mode sombre"}
-          </button>
+          <div className="flex items-center gap-2 px-3 py-2">
+            <ThemeToggle />
+            <LanguageSwitcher />
+          </div>
           <Link
             href="/customer/login"
             className="flex w-full items-center gap-3 rounded-kfm-sm px-3 py-2 text-sm font-medium text-kfm-danger hover:bg-kfm-danger/10"
