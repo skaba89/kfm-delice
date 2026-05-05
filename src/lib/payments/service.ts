@@ -151,8 +151,10 @@ export async function createPaymentIntent(params: {
   const cleanedPhone = phoneNumber ? cleanPhoneNumber(phoneNumber) : null;
 
   // Create payment record
+  const orderData = await db.order.findUnique({ where: { id: orderId }, select: { restaurantId: true } });
   const payment = await db.payment.create({
     data: {
+      restaurantId: orderData?.restaurantId || "",
       orderId,
       amount: finalAmount,
       currency,

@@ -583,6 +583,7 @@ async function main() {
       payments: {
         create: [
           {
+            restaurantId: restaurant.id,
             amount: 83000,
             currency: "GNF",
             method: PaymentMethod.CASH,
@@ -678,6 +679,7 @@ async function main() {
       payments: {
         create: [
           {
+            restaurantId: restaurant.id,
             amount: 71000,
             currency: "GNF",
             method: PaymentMethod.MOBILE_MONEY,
@@ -763,6 +765,7 @@ async function main() {
       payments: {
         create: [
           {
+            restaurantId: restaurant.id,
             amount: 30000,
             currency: "GNF",
             method: PaymentMethod.CASH,

@@ -38,7 +38,8 @@ import {
  *
  * This does NOT modify the original client — it creates a lightweight wrapper.
  */
-export function withRLS<T extends PrismaClientLike>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function withRLS<T extends Record<string, any>>(
   prisma: T,
   user: RLSUser
 ): RLSExtendedClient<T> {
@@ -61,13 +62,15 @@ export function withRLS<T extends PrismaClientLike>(
       const filterFn = modelFilters[modelKey];
       if (!filterFn) {
         // No RLS for this model — return original
-        return (target as Record<string, unknown>)[prop];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (target as any)[prop];
       }
 
       const rlsFilter = filterFn(user);
 
       // Get the original Prisma model delegate
-      const modelDelegate = (target as Record<string, unknown>)[modelKey] as Record<
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const modelDelegate = (target as any)[modelKey] as Record<
         string,
         unknown
       >;
