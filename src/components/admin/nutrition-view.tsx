@@ -27,7 +27,7 @@ interface MenuItem {
   isHalal: boolean;
   isGlutenFree: boolean;
   isSpicy: boolean;
-  allergens: string | null;
+  allergens: string | string[] | null;
   category?: { id: string; name: string } | null;
 }
 
@@ -80,8 +80,10 @@ export function AdminNutritionView() {
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
-  const parseAllergens = (allergens: string | null): string[] => {
+  const parseAllergens = (allergens: string | string[] | null): string[] => {
     if (!allergens) return [];
+    if (Array.isArray(allergens)) return allergens;
+    if (typeof allergens !== 'string') return [];
     try {
       const parsed = JSON.parse(allergens);
       return Array.isArray(parsed) ? parsed : [];
