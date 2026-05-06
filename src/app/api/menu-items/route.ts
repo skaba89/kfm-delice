@@ -173,27 +173,54 @@ export async function PUT(req: NextRequest) {
 
     for (const field of updatableFields) {
       if (field in fields) {
+        const val = fields[field];
+        if (val === undefined) continue;
+
         if (field === "allergens" || field === "ingredientIds") {
-          data[field] = fields[field] !== null && fields[field] !== undefined
-            ? JSON.stringify(fields[field])
-            : null;
+          data[field] = val !== null ? JSON.stringify(val) : null;
         } else if (["price", "discountPrice", "costPrice", "rating"].includes(field)) {
-          data[field] = fields[field] !== null && fields[field] !== undefined
-            ? parseFloat(fields[field])
-            : null;
+          const num = typeof val === "number" ? val : parseFloat(val);
+          data[field] = val !== null && !isNaN(num) ? num : null;
         } else if (["calories", "prepTime", "spicyLevel", "quantity", "lowStockThreshold", "sortOrder"].includes(field)) {
-          data[field] = fields[field] !== null && fields[field] !== undefined
-            ? parseInt(fields[field])
-            : null;
+          const num = typeof val === "number" ? val : parseInt(val, 10);
+          data[field] = val !== null && !isNaN(num) ? num : null;
         } else {
-          data[field] = fields[field];
+          data[field] = val;
         }
       }
     }
 
     // Auto-generate slug from name if name changed and slug not provided
     if (data.name && !data.slug) {
-      data.slug = (data.name as string).toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      let slug = (data.name as string).toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+
+      // If categoryId is changing, ensure slug uniqueness in target category
+      if (data.categoryId) {
+        const existing = await db.menuItem.findFirst({
+          where: { categoryId: data.categoryId as string, slug },
+          select: { id: true },
+        });
+        if (existing && existing.id !== id) {
+          // Append timestamp to make slug unique
+          slug = `${slug}-${Date.now().toString(36)}`;
+        }
+      }
+      data.slug = slug;
+    } else if (data.categoryId && !data.slug && !data.name) {
+      // Category changed but name/slug not changed — check slug uniqueness in new category
+      const current = await db.menuItem.findUnique({
+        where: { id },
+        select: { slug: true },
+      });
+      if (current) {
+        const existing = await db.menuItem.findFirst({
+          where: { categoryId: data.categoryId as string, slug: current.slug },
+          select: { id: true },
+        });
+        if (existing && existing.id !== id) {
+          data.slug = `${current.slug}-${Date.now().toString(36)}`;
+        }
+      }
     }
 
     const item = await db.menuItem.update({
@@ -209,9 +236,13 @@ export async function PUT(req: NextRequest) {
     return success(item);
   } catch (err: unknown) {
     console.error("[MENU ITEMS PUT]", err);
-    const prismaErr = err as { code?: string };
+    const prismaErr = err as { code?: string; meta?: Record<string, unknown> };
     if (prismaErr.code === "P2025") {
       return error("Menu item not found", 404);
+    }
+    if (prismaErr.code === "P2002") {
+      const target = (prismaErr.meta?.target as string[]) || [];
+      return error(`Un produit avec ce nom existe deja dans cette categorie (${target.join(", ")})`, 409);
     }
     return error("Internal server error", 500);
   }

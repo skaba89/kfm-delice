@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { success, error } from "@/lib/api-response";
+import { checkAnyPermission } from "@/lib/rbac";
+import { Permissions } from "@/lib/permissions";
 
 // ============================================
 // GET /api/menu-categories — List categories
@@ -10,7 +12,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const menuId = searchParams.get("menuId");
 
-    const where: Record<string, unknown> = { isActive: true };
+    const where: Record<string, unknown> = {};
     if (menuId) where.menuId = menuId;
 
     const categories = await db.menuCategory.findMany({
@@ -34,10 +36,16 @@ export async function GET(req: NextRequest) {
 }
 
 // ============================================
-// POST /api/menu-categories — Create category
+// POST /api/menu-categories — Create category (RBAC)
 // ============================================
 export async function POST(req: NextRequest) {
   try {
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.MENU_CREATE,
+      Permissions.MENU_MANAGE,
+    ]);
+    if (userOrError instanceof globalThis.Response) return userOrError;
+
     const body = await req.json();
     const { menuId, name, slug, description, icon, image, sortOrder } = body;
 
@@ -61,18 +69,28 @@ export async function POST(req: NextRequest) {
     });
 
     return success(category, 201);
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("[MENU CATEGORIES POST]", err);
+    const prismaErr = err as { code?: string };
+    if (prismaErr.code === "P2002") {
+      return error("Une categorie avec ce nom existe deja dans ce menu", 409);
+    }
     return error("Internal server error", 500);
   }
 }
 
 // ============================================
-// PUT /api/menu-categories — Update category
+// PUT /api/menu-categories — Update category (RBAC)
 // Body must include `id` plus any fields to update.
 // ============================================
 export async function PUT(req: NextRequest) {
   try {
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.MENU_UPDATE,
+      Permissions.MENU_MANAGE,
+    ]);
+    if (userOrError instanceof globalThis.Response) return userOrError;
+
     const body = await req.json();
     const { id, ...fields } = body;
 
@@ -118,15 +136,24 @@ export async function PUT(req: NextRequest) {
     if (prismaErr.code === "P2025") {
       return error("Category not found", 404);
     }
+    if (prismaErr.code === "P2002") {
+      return error("Une categorie avec ce nom existe deja dans ce menu", 409);
+    }
     return error("Internal server error", 500);
   }
 }
 
 // ============================================
-// DELETE /api/menu-categories?id=xxx — Delete a category
+// DELETE /api/menu-categories?id=xxx — Delete a category (RBAC)
 // ============================================
 export async function DELETE(req: NextRequest) {
   try {
+    const userOrError = await checkAnyPermission(req, [
+      Permissions.MENU_DELETE,
+      Permissions.MENU_MANAGE,
+    ]);
+    if (userOrError instanceof globalThis.Response) return userOrError;
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 

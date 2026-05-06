@@ -280,9 +280,11 @@ export function AdminMenuView() {
             ),
           }))
         );
+      } else {
+        toast({ title: "Erreur", description: json.error || "Impossible de modifier la disponibilite.", variant: "destructive" });
       }
     } catch {
-      /* silent */
+      toast({ title: "Erreur reseau", description: "Impossible de modifier la disponibilite.", variant: "destructive" });
     } finally {
       setTogglingId(null);
     }
@@ -307,9 +309,11 @@ export function AdminMenuView() {
             ),
           }))
         );
+      } else {
+        toast({ title: "Erreur", description: json.error || "Impossible de modifier la vedette.", variant: "destructive" });
       }
     } catch {
-      /* silent */
+      toast({ title: "Erreur reseau", description: "Impossible de modifier la vedette.", variant: "destructive" });
     } finally {
       setTogglingFeaturedId(null);
     }
@@ -349,8 +353,9 @@ export function AdminMenuView() {
       toast({ title: "Champ requis", description: "Le nom du produit est obligatoire.", variant: "destructive" });
       return;
     }
-    if (!itemForm.price || Number(itemForm.price) <= 0) {
-      toast({ title: "Champ requis", description: "Le prix doit etre superieur a 0.", variant: "destructive" });
+    const priceNum = Number(itemForm.price);
+    if (!itemForm.price || isNaN(priceNum) || priceNum <= 0) {
+      toast({ title: "Champ requis", description: "Le prix doit etre un nombre superieur a 0.", variant: "destructive" });
       return;
     }
     if (!itemForm.categoryId) {
@@ -366,7 +371,7 @@ export function AdminMenuView() {
       const body: Record<string, unknown> = {
         categoryId: itemForm.categoryId,
         name: itemForm.name.trim(),
-        price: Number(itemForm.price),
+        price: priceNum,
         description: itemForm.description.trim() || null,
         discountPrice: itemForm.discountPrice ? Number(itemForm.discountPrice) : null,
         costPrice: itemForm.costPrice ? Number(itemForm.costPrice) : null,
@@ -382,12 +387,16 @@ export function AdminMenuView() {
       };
       if (isEditing) body.id = itemForm.id;
 
+      console.log("[MENU] Saving item:", method, body);
+
       const res = await fetch("/api/menu-items", {
         method,
         headers: authHeaders(),
         body: JSON.stringify(body),
       });
       const json = await res.json();
+
+      console.log("[MENU] Save response:", res.status, json);
 
       if (json.success) {
         toast({
@@ -403,7 +412,8 @@ export function AdminMenuView() {
           variant: "destructive",
         });
       }
-    } catch {
+    } catch (err) {
+      console.error("[MENU] Save error:", err);
       toast({
         title: "Erreur reseau",
         description: "Une erreur est survenue. Veuillez reessayer.",
@@ -481,6 +491,10 @@ export function AdminMenuView() {
       toast({ title: "Champ requis", description: "Le nom de la categorie est obligatoire.", variant: "destructive" });
       return;
     }
+    if (!categoryForm.menuId && !categoryForm.id) {
+      toast({ title: "Champ requis", description: "Veuillez selectionner un menu parent.", variant: "destructive" });
+      return;
+    }
 
     try {
       setCategorySaving(true);
@@ -495,12 +509,16 @@ export function AdminMenuView() {
       };
       if (isEditing) body.id = categoryForm.id;
 
+      console.log("[MENU] Saving category:", method, body);
+
       const res = await fetch("/api/menu-categories", {
         method,
         headers: authHeaders(),
         body: JSON.stringify(body),
       });
       const json = await res.json();
+
+      console.log("[MENU] Category save response:", res.status, json);
 
       if (json.success) {
         toast({
@@ -516,7 +534,8 @@ export function AdminMenuView() {
           variant: "destructive",
         });
       }
-    } catch {
+    } catch (err) {
+      console.error("[MENU] Category save error:", err);
       toast({
         title: "Erreur reseau",
         description: "Une erreur est survenue. Veuillez reessayer.",

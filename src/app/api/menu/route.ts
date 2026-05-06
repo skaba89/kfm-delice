@@ -66,6 +66,8 @@ export async function GET(req: NextRequest) {
     if (!includeInactive) {
       categoryWhere.isActive = true;
     }
+    // Always show categories to admin even when includeInactive=true
+    // (no additional filter needed — isActive filter only applied when includeInactive=false)
 
     // Build items where clause
     const itemWhere: Record<string, unknown> = {};
